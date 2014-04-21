@@ -68,6 +68,7 @@
 #include <time.h>
 #include <string.h>
 #include <unistd.h>
+#include <libnotify/notify.h>
 
 #include "key.h"	/* XXX for typedef */
 #include "buffer.h"	/* XXX for typedef */
@@ -149,6 +150,27 @@ extern char *__progname;
 static long lifetime = 0;
 
 static int fingerprint_hash = SSH_FP_HASH_DEFAULT;
+
+static void
+notify_user(Identity *id)
+{
+	char *p;
+	char *msg;
+
+	p = key_fingerprint(id->key, SSH_FP_SHA1, SSH_FP_HEX);
+	debug("notifying key challenge signed for fingerprint %s path %s", p, id->comment);
+
+	msg = xmalloc(256);
+	snprintf(msg, 255, "Key: %s\nFingerprint: %s", id->comment, p);
+
+	NotifyNotification * Agent = notify_notification_new ("Signed challenge",  msg, "emblem-unlocked");
+	notify_notification_set_category (Agent, __progname);
+	notify_notification_set_timeout (Agent, 300);
+	notify_notification_show (Agent, NULL);
+
+	free(msg);
+	free(p);
+}
 
 static void
 close_socket(SocketEntry *e)
@@ -347,6 +369,7 @@ process_authentication_challenge1(SocketEntry *e)
 		if ((r = sshbuf_put_u8(msg, SSH_AGENT_RSA_RESPONSE)) != 0 ||
 		    (r = sshbuf_put(msg, mdbuf, sizeof(mdbuf))) != 0)
 			fatal("%s: buffer error: %s", __func__, ssh_err(r));
+		notify_user(id);
 		goto send;
 	}
 
@@ -368,6 +391,7 @@ static void
 process_sign_request2(SocketEntry *e)
 {
 	u_char *blob, *data, *signature = NULL;
+<<<<<<< HEAD
 	size_t blen, dlen, slen = 0;
 	u_int compat = 0, flags;
 	int r, ok = -1;
@@ -400,6 +424,7 @@ process_sign_request2(SocketEntry *e)
 		error("%s: sshkey_sign: %s", __func__, ssh_err(ok));
 		goto send;
 	}
+	notify_user(id);
 	/* Success */
 	ok = 0;
  send:
@@ -1179,6 +1204,7 @@ main(int ac, char **av)
 
 	__progname = ssh_get_progname(av[0]);
 	seed_rng();
+	notify_init(__progname);
 
 	while ((ch = getopt(ac, av, "cdksE:a:t:")) != -1) {
 		switch (ch) {
