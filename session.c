@@ -814,13 +814,14 @@ do_exec(Session *s, const char *command)
 			tty += 5;
 	}
 
-	verbose("Starting session: %s%s%s for %s from %.200s port %d",
+	verbose("Starting session: %s%s%s for %s from %.200s port %d kernel session %u",
 	    session_type,
 	    tty == NULL ? "" : " on ",
 	    tty == NULL ? "" : tty,
 	    s->pw->pw_name,
 	    get_remote_ipaddr(),
-	    get_remote_port());
+	    get_remote_port(),
+	    getsid(0));
 
 #ifdef SSH_AUDIT_EVENTS
 	if (command != NULL)
